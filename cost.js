@@ -1,5 +1,13 @@
 // cost.js
 import { CONFIG } from './config.js';
-export const buildCost  = (state)=> state.debugFree?0:CONFIG.tower.cost;
-export const repairCost = (state)=> state.debugFree?0:CONFIG.economy.repairCost;
-export const maxHpCost  = (state)=> state.debugFree?0:CONFIG.economy.maxHpCost;
+import { state } from './state.js';
+
+export function buildCost(s=state){
+  return s.debugFree ? 0 : CONFIG.tower.cost;
+}
+export function repairCost(s=state){
+  return s.debugFree? 0 : CONFIG.economy.repairCost;
+}
+export function maxHpCost(s=state){
+  return s.debugFree? 0 : CONFIG.economy.maxHpCost;
+}

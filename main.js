@@ -1,10 +1,11 @@
-// main.js  (Speed-Multiplier, Hitbox-/Overlay-Draw & "1 Gegner"-Button)
+// main.js  — SPAWN-FIX
 import { CONFIG } from './config.js';
 import { Utils } from './utils.js';
 import { state } from './state.js';
 import { buildCost } from './cost.js';
 import { Enemy } from './entities/Enemy.js';
 import { Tower } from './entities/Tower.js';
+import { Projectile } from './entities/Projectile.js'; // falls benötigt in draw/update
 import { updateVFX, drawVFX } from './vfx.js';
 import { initUI, markUiDirty, refreshStaticCosts } from './ui.js';
 import { triggerFireDeathExplosion } from './effects.js';
@@ -35,18 +36,15 @@ function strokePath(width, color, alpha=1){
 }
 
 function drawBackground(){
-  // Reset-Clear
   ctx.save();
   ctx.setTransform(1,0,0,1,0,0);
-  ctx.globalCompositeOperation = 'source-over';
-  ctx.globalAlpha = 1;
+  ctx.globalCompositeOperation='source-over';
+  ctx.globalAlpha=1;
 
   // Boden
   const g=ctx.createLinearGradient(0,0,0,canvas.height);
-  g.addColorStop(0,'#10162a');
-  g.addColorStop(1,'#0d1120');
-  ctx.fillStyle=g;
-  ctx.fillRect(0,0,canvas.width,canvas.height);
+  g.addColorStop(0,'#10162a'); g.addColorStop(1,'#0d1120');
+  ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
 
   // Pfad
   strokePath(40, '#0a0d16', 0.85);
@@ -61,7 +59,7 @@ function drawBackground(){
   ctx.strokeStyle='#2a1f12'; ctx.lineWidth=2;
   ctx.strokeRect(state.castle.x-18,state.castle.y-22,36,36);
 
-  // Build-Hilfe
+  // Build-Vorschau
   if(state.buildMode){
     const ok=Utils.distanceToPath(mouse, CONFIG)>=CONFIG.pathBuffer && state.gold>=buildCost(state);
     ctx.globalAlpha=.25; ctx.fillStyle=ok?'#7CFC00':'#ff6b6b';
@@ -70,54 +68,16 @@ function drawBackground(){
     ctx.beginPath(); ctx.arc(mouse.x,mouse.y,CONFIG.tower.range,0,Math.PI*2); ctx.fill();
   }
 
-  // DEV: Hitbox/Path-Puffer
-  if(state.dev.showHit){
-    // Path-Buffer
+  // DEV-Hitboxen/Pfadpuffer
+  if(state.dev?.showHit){
     const pts=CONFIG.pathPoints;
-    ctx.save();
-    ctx.globalAlpha=0.15;
-    ctx.strokeStyle='#00e5ff';
-    ctx.lineWidth=CONFIG.pathBuffer*2;
-    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke();
-    ctx.restore();
-
-    // Gegner-Hitboxen
-    ctx.save();
-    ctx.globalAlpha=0.5; ctx.strokeStyle='#ff3e3e'; ctx.lineWidth=1;
+    ctx.save(); ctx.globalAlpha=0.15; ctx.strokeStyle='#00e5ff'; ctx.lineWidth=CONFIG.pathBuffer*2;
+    ctx.beginPath(); ctx.moveTo(pts[0].x,pts[0].y); for(let i=1;i<pts.length;i++) ctx.lineTo(pts[i].x,pts[i].y); ctx.stroke(); ctx.restore();
+    ctx.save(); ctx.globalAlpha=0.5; ctx.strokeStyle='#ff3e3e'; ctx.lineWidth=1;
     for(const e of state.enemies){ ctx.beginPath(); ctx.arc(e.pos.x,e.pos.y,e.radius,0,Math.PI*2); ctx.stroke(); }
     ctx.restore();
   }
 
-  ctx.restore();
-}
-
-function drawDevOverlay(){
-  if(!state.dev.showOverlay) return;
-  ctx.save();
-  ctx.font='11px ui-monospace';
-  ctx.textAlign='center';
-  for(const e of state.enemies){
-    const fires = e.effects.filter(x=>x.type==='fire');
-    const pois  = e.effects.filter(x=>x.type==='poison');
-    const ice   = e.effects.some(x=>x.type==='ice');
-    const y = e.pos.y - e.radius - 24;
-
-    // Stack-Zeile
-    const stackTxt = `F${fires.length} P${pois.length}${ice?' I':''}`;
-    ctx.fillStyle='rgba(255,255,255,0.85)';
-    ctx.fillText(stackTxt, e.pos.x, y);
-
-    // Tick-Zeile (minimale Info): nächsten Tick der stärksten Stacks
-    const fTop = fires.sort((a,b)=>b.dmg-a.dmg)[0];
-    const pTop = pois.sort((a,b)=>b.dmg-a.dmg)[0];
-    let tTxt = '';
-    if(fTop) tTxt += `f:${fTop.t.toFixed(2)} `;
-    if(pTop) tTxt += `p:${pTop.t.toFixed(2)}`;
-    if(tTxt){
-      ctx.fillStyle='rgba(180,220,255,0.9)';
-      ctx.fillText(tTxt.trim(), e.pos.x, y-12);
-    }
-  }
   ctx.restore();
 }
 
@@ -130,17 +90,40 @@ function tryPlaceTower(p){
   state.gold-=c; state.buildMode=false; markUiDirty();
 }
 
-// ---------- Waves & Spawns ----------
+// ---------- Waves & Spawns (robust) ----------
 function startWave(){
-  state.wave++;
+  // Welle hochzählen und Spawn-Queue auffüllen
+  state.wave = (state.wave|0) + 1;
   const count = 6 + Math.floor(state.wave*1.5);
-  state.spawnLeft += count;
+  state.spawnLeft = (state.spawnLeft|0) + count;
   state.spawning = true;
-  state.timers.spawn = 0;
+
+  // Timer defensiv initialisieren
+  if(!state.timers) state.timers = { spawn: 0 };
+  state.timers.spawn = 0; // sorgt für sofortiges Spawnen im nächsten Tick
+
   markUiDirty();
 }
+
+function spawnTick(dt){
+  if(!state.spawning) return;
+  // Fallbacks, falls State „leer“ ankommt
+  const baseInterval = (typeof state.spawnInterval==='number' && state.spawnInterval>0) ? state.spawnInterval : 0.7;
+
+  state.timers.spawn -= dt;
+  // mehrere Spawns pro Frame zulassen, bis Timer positiv ist
+  while(state.spawnLeft>0 && state.timers.spawn<=0){
+    const waveIndex = Math.max(1, state.wave || 1);
+    state.enemies.push(new Enemy(waveIndex));
+    state.spawnLeft--;
+    // Folge-Spawn-Delay (leichte Beschleunigung pro Welle), min. 0.25s
+    const nextDelay = Math.max(0.25, baseInterval * Math.pow(0.98, waveIndex));
+    state.timers.spawn += nextDelay;
+  }
+  if(state.spawnLeft<=0) state.spawning=false;
+}
+
 function spawnOne(){
-  // wave=1 wenn noch keine gestartet wurde
   const w = Math.max(1, state.wave || 1);
   state.enemies.push(new Enemy(w));
 }
@@ -159,34 +142,26 @@ canvas.addEventListener('click', e=>{
 // ---------- Game Loop ----------
 let last=performance.now();
 function loop(now){
-  // Speed-Multiplikator
   const dtRaw=Math.min(0.033,(now-last)/1000); last=now;
-  const dt = dtRaw * (state.dev.speed||1);
+  const dt = dtRaw * (state.dev?.speed||1);
 
   if(!state.paused){
-    // Spawns
-    state.timers.spawn -= dt;
-    while(state.spawning && state.spawnLeft>0 && state.timers.spawn<=0){
-      state.enemies.push(new Enemy(state.wave));
-      state.spawnLeft--;
-      state.timers.spawn += Math.max(0.25, state.spawnInterval * Math.pow(0.98, state.wave));
-    }
-    if(state.spawnLeft<=0) state.spawning=false;
+    // SPAWN-FIX: ticke Spawns separat & zuverlässig
+    spawnTick(dt);
 
     // Updates
     for(const e of state.enemies) e.update(dt);
     for(const t of state.towers) t.update(dt, state);
-    for(const p of state.projectiles) p.update(dt);
-    state.projectiles = state.projectiles.filter(p=>p.alive);
+    for(const p of state.projectiles) p.update?.(dt);
+    state.projectiles = state.projectiles.filter(p=>p.alive!==false);
     updateVFX(dt);
 
     // Kills / Burgschaden / Gold
     const survivors=[];
     for(const e of state.enemies){
       if(e.hp<=0){
-        // AoE nur beim Tod (wenn brennend) – Funktion prüft selbst, ob Feuer aktiv war
-        triggerFireDeathExplosion(e);
-        state.gold += e.reward; 
+        triggerFireDeathExplosion(e);   // AoE nur bei Tod, falls brennend
+        state.gold += e.reward;
         markUiDirty();
         continue;
       }
@@ -205,9 +180,8 @@ function loop(now){
   drawBackground();
   for(const t of state.towers) t.draw(ctx, state.selectedTower===t);
   for(const e of state.enemies) e.draw(ctx);
-  for(const p of state.projectiles) p.draw(ctx);
+  for(const p of state.projectiles) p.draw?.(ctx);
   drawVFX(ctx);
-  drawDevOverlay();
 
   requestAnimationFrame(loop);
 }
@@ -225,13 +199,6 @@ requestAnimationFrame(loop);
 
 // ---------- Public API ----------
 window.TD = {
-  startWave,
-  spawnOne,
-  toggleDebug(){ state.debugFree=!state.debugFree; refreshStaticCosts(); markUiDirty(); return state.debugFree; },
-  setDebug(on){ state.debugFree=!!on; refreshStaticCosts(); markUiDirty(); },
-  setSpeed(x){ state.dev.speed=x; },
-  getState(){ return { gold: state.gold, wave: state.wave, enemies: state.enemies.length, towers: state.towers.length, debug: state.debugFree, speed: state.dev.speed, castle: { ...state.castle } }; },
-  selectTower(i){ if(i>=0 && i<state.towers.length){ state.selectedTower=state.towers[i]; markUiDirty(); return true; } return false; },
-  upgradeSelected(type){ if(!state.selectedTower) return false; const ok=state.selectedTower.upgrade(state,type); if(ok) markUiDirty(); return ok; },
-  buildAt(x,y){ const p={x,y}; tryPlaceTower(p); },
+  startWave, spawnOne,
+  getState(){ return { wave:state.wave, spawnLeft:state.spawnLeft, spawning:state.spawning, enemies:state.enemies.length, gold:state.gold }; }
 };

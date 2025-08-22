@@ -13,11 +13,5 @@ export const state = {
   timers: { spawn: 0 },
   spawning: false, spawnLeft: 0, spawnInterval: 0.7,
   debugFree: false,
-
-  // NEU: Dev-Flags
-  dev: {
-    speed: 1,           // 1, 2, 4
-    showHit: false,     // Hitboxen & Pfad-Puffer
-    showOverlay: false, // DoT/Tick-Overlay
-  },
+  dev: { speed:1, showHit:false, showOverlay:false },
 };

@@ -10,29 +10,33 @@ export const CONFIG = {
       rng:{ baseCost:35, scaling:1.30, addPerLevel:10 },
       spd:{ baseCost:45, scaling:1.32, multPerLevel:0.90 },
 
-      // Krit: +5% Chance/Level, Mult startet 1.5x und +0.1/Level
-      crit:{
-        baseCost:55, scaling:1.28,
-        addChancePerLevel:0.05, maxChance:0.5,
-        multBase:1.5, multPerLevelAdd:0.1
-      },
+      // Krit: +5% Chance/Level; Mult startet 1.5 und +0.1/Level (Chance capped)
+      crit:{ baseCost:55, scaling:1.28, addChancePerLevel:0.05, maxChance:0.5, multBase:1.5, multPerLevelAdd:0.1 },
 
-      // Eis bleibt „einmal kaufbar“
+      // Elemente / Spezialisierungen (exklusiv pro Turm)
       ice:{ cost:80, slowMult:0.6, duration:2.5 },
 
-      // DoTs (L1–L5), max 3 Stacks
       fire:{
         baseCost:90, scaling:1.35,
         baseDmg:5, duration:4.0, baseTick:1.0,
         dmgPerLevelMul:1.25, tickPerLevelMul:0.9,
         maxLevel:5, maxStacks:3,
-        explosion:{ radius:140, dmgMult:0.6, durationMult:0.6 } // AoE (nur noch bei Tod)
+        explosion:{ radius:140, dmgMult:0.6, durationMult:0.6 } // AoE nur beim Tod
       },
       poison:{
         baseCost:85, scaling:1.35,
         baseDmg:4, duration:5.0, baseTick:1.0,
         dmgPerLevelMul:1.20, tickPerLevelMul:0.9,
         maxLevel:5, maxStacks:3
+      },
+
+      // 💣 Bomben-Upgrade (AoE statt Pfeil, langsameres Feuern, Radius skaliert mit Level)
+      bomb:{
+        baseCost:100, scaling:1.34, maxLevel:5,
+        cooldownMult:1.6,           // langsamer als Standard
+        projectileSpeed:360,
+        radiusBaseFactor: 2/3,      // Basisradius = 2/3 von fire.explosion.radius
+        radiusPerLevel: 12          // +12 pro Bomben-Level
       },
     }
   },

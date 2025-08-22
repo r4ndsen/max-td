@@ -25,6 +25,7 @@ const btnDevOverlay = document.getElementById('btnDevOverlay');
 let uiDirty=true, uiScheduled=false;
 
 export function refreshStaticCosts(){
+  const costBuildEl = document.getElementById('costBuild');
   if(costBuildEl) costBuildEl.textContent = buildCost(state);
   if(costRepairEl) costRepairEl.textContent = repairCost(state);
   if(costMaxHpEl)  costMaxHpEl.textContent = maxHpCost(state);
@@ -99,29 +100,33 @@ export function renderHUD(){
   if(state.buildMode) make('Bauen','Klick zum Platzieren','var(--accent)');
   if(state.selectedTower){
     const t=state.selectedTower;
+    // ui.js (Ausschnitt: renderHUD() – Tower-Panel)
+    // … im Block if(state.selectedTower) { const t=state.selectedTower; … }
+
     const can =(type)=> t.canUpgrade(state,type)? '' : 'disabled';
     const cost=(type)=>{ const c=t.upgradeCost(state)(type); return (c===null)? '–':c; };
     const L  =(k)=> `${t.levels[k]}/${CONFIG.tower.maxLevelPerTrack}`;
-
-    // Zielmodi inkl. „Erster/Letzter“
     const modeBtn=(key,label,icon)=>`<button data-mode="${key}" class="${t.targetMode===key?'toggle-on':''}">${icon} ${label}</button>`;
 
-    // DoT-Exklusivität: nur der gewählte Track wird angezeigt
-    const showFireOnly   = t.dotLevels.fire>0;
-    const showPoisonOnly = t.dotLevels.poison>0;
-    const showIceOnly    = t.elements.ice;
-    const showAllDots    = !showFireOnly && !showPoisonOnly && !showIceOnly;
+    // Exklusivität: nur gewählten Track zeigen
+    const showFireOnly   = t.dotLevels?.fire>0;
+    const showPoisonOnly = t.dotLevels?.poison>0;
+    const showIceOnly    = t.elements?.ice;
+    const showBombOnly   = t.bombLevel>0;
+    const showAllSpecs   = !showFireOnly && !showPoisonOnly && !showIceOnly && !showBombOnly;
 
-    let dotRow = '';
-    if(showAllDots || showFireOnly)   dotRow += `<button ${can('fire')} data-upg="fire">🔥 Feuer <span class="pill">${cost('fire')}</span> <span class="small">L${t.dotLevels.fire}/${CONFIG.tower.upgrades.fire.maxLevel}</span></button>`;
-    if(showAllDots || showPoisonOnly) dotRow += `<button ${can('poison')} data-upg="poison">☠️ Gift <span class="pill">${cost('poison')}</span> <span class="small">L${t.dotLevels.poison}/${CONFIG.tower.upgrades.poison.maxLevel}</span></button>`;
-    if(showAllDots || showIceOnly)    dotRow += `<button ${can('ice')} data-upg="ice">❄️ Eis <span class="pill">${cost('ice')}</span> <span class="small">${t.elements.ice?'Aktiv':'–'}</span></button>`;
+    let specRow = '';
+    if(showAllSpecs || showFireOnly)   specRow += `<button ${can('fire')} data-upg="fire">🔥 Feuer <span class="pill">${cost('fire')}</span> <span class="small">L${t.dotLevels.fire}/${CONFIG.tower.upgrades.fire.maxLevel}</span></button>`;
+    if(showAllSpecs || showPoisonOnly) specRow += `<button ${can('poison')} data-upg="poison">☠️ Gift <span class="pill">${cost('poison')}</span> <span class="small">L${t.dotLevels.poison}/${CONFIG.tower.upgrades.poison.maxLevel}</span></button>`;
+    if(showAllSpecs || showIceOnly)    specRow += `<button ${can('ice')} data-upg="ice">❄️ Eis <span class="pill">${cost('ice')}</span> <span class="small">${t.elements.ice?'Aktiv':'–'}</span></button>`;
+    if(showAllSpecs || showBombOnly)   specRow += `<button ${can('bomb')} data-upg="bomb">💣 Bombe <span class="pill">${cost('bomb')}</span> <span class="small">L${t.bombLevel}/${CONFIG.tower.upgrades.bomb.maxLevel}</span></button>`;
 
     towerPanel.innerHTML = `
-      <div><strong>🎯 Ausgewählter Turm</strong></div>
-      <div class="stat"><span>Gesamt-Level</span><span>${t.level}</span></div>
+      <div><strong>${t.bombLevel>0?'💣 Bomben-Turm':'🎯 Pfeilturm'}</strong></div>
       <div class="stat"><span>Schaden</span><span>${t.damage}</span></div>
       <div class="stat"><span>Reichweite</span><span>${Math.round(t.range)}</span></div>
+      <div class="stat"><span>${t.bombLevel>0?'Feuerrate (Bombe)':'Feuerrate'}</span><span>${(1/t.fireCooldown).toFixed(2)}/s</span></div>
+      ${t.bombLevel>0 ? `<div class="stat"><span>Blast-Radius</span><span>${Math.round(t.blastRadius)}</span></div>` : ''}
       <div class="stat"><span>Krit</span><span>${Math.round(t.critChance*100)}% ×${t.critMult.toFixed(2)}</span></div>
 
       <div class="row" style="margin:6px 0 2px"><span class="small">Zielmodus:</span></div>
@@ -141,9 +146,10 @@ export function renderHUD(){
         <button ${can('crit')} data-upg="crit">💥 Krits <span class="pill">${cost('crit')}</span></button>
       </div>
 
-      <div class="row">${dotRow}</div>
+      <div class="row">${specRow}</div>
       <div class="small" style="opacity:.8;margin-top:6px">Levels: DMG ${L('dmg')}, RNG ${L('rng')}, SPD ${L('spd')}, CRIT ${L('crit')}</div>
     `;
+
   } else {
     towerPanel.textContent = 'Kein Turm ausgewählt. Klicke einen Turm an, um ihn zu upgraden.';
   }
