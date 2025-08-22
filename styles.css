@@ -1,0 +1,25 @@
+/* styles.css */
+:root{ --bg:#0f1220; --panel:#171a2a; --panel2:#20243a; --text:#e7ecff; --accent:#66d9ef; --good:#7CFC00; --warn:#ffcc00; --bad:#ff6b6b; }
+*{box-sizing:border-box}
+body{margin:0;background:linear-gradient(160deg,#0b1020,#0e1426 40%,#0f1120);color:var(--text);font:15px/1.4 system-ui,Segoe UI,Roboto,Helvetica,Arial}
+header{padding:10px 16px;background:rgba(0,0,0,.3);backdrop-filter:blur(6px);position:sticky;top:0;z-index:3;border-bottom:1px solid #1e2238}
+header .sub{opacity:.7;font-size:12px;margin-left:8px}
+.wrap{display:grid;grid-template-columns: 920px 1fr;gap:16px;max-width:1400px;margin:10px auto;padding:0 12px}
+#game{background:#0b0f1a;border:1px solid #232842;border-radius:12px;position:relative}
+canvas{display:block;border-radius:12px}
+.hud{position:absolute;left:10px;top:10px;display:flex;gap:8px;flex-wrap:wrap}
+.badge{background:rgba(255,255,255,.07);padding:6px 10px;border-radius:999px;border:1px solid #2a3050}
+.side{background:var(--panel);border:1px solid #252a44;border-radius:14px;padding:12px;position:sticky;top:64px;height:fit-content}
+.side h2{font-size:18px;margin:6px 0 8px}
+.grid{display:grid;grid-template-columns:1fr;gap:8px}
+button{appearance:none;border:1px solid #2a3050;background:var(--panel2);color:var(--text);padding:10px 12px;border-radius:10px;cursor:pointer;transition:.15s;display:flex;justify-content:space-between;align-items:center;gap:8px}
+button:hover{filter:brightness(1.1)}
+button:disabled{opacity:.5;cursor:not-allowed}
+.row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.small{font-size:12px;opacity:.8}
+.sep{height:1px;background:#242a44;margin:8px 0}
+.notice{background:#151a2e;border:1px dashed #2d3358;padding:8px;border-radius:10px;color:#cbd3ff}
+.kbd{font-family:ui-monospace,SFMono-Regular,Menlo,monospace;font-size:12px;background:#101425;border:1px solid #20284a;padding:1px 6px;border-radius:6px}
+.pill{padding:4px 8px;border-radius:999px;border:1px solid #2a3050;background:#171b2e}
+.stat{display:flex;justify-content:space-between}
+.toggle-on{box-shadow:0 0 0 2px #7CFC00 inset}
