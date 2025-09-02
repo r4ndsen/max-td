@@ -1,67 +1,72 @@
 <!DOCTYPE html>
 <html lang="de">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <title>🏰 Tower Defense – Modular Build</title>
-  <link rel="stylesheet" href="styles.css">
+    <meta charset="UTF-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1"/>
+    <title>🏰 Tower Defense – Modular Build</title>
+    <link rel="stylesheet" href="styles.css">
 </head>
 <body>
-  <header>
+<header>
     <strong>🏰 Tower Defense – Modular Build</strong>
     <span class="sub">API: <code>window.TD</code></span>
-  </header>
+    <div style="margin-left:auto; display:flex; align-items:center; gap:6px;">
+        <label id="langLabel" for="langSelect">Sprache</label>
+        <select id="langSelect" aria-label="Language"></select>
+    </div>
+</header>
 
-  <div class="wrap">
+<div class="wrap">
     <div id="game">
-      <canvas id="c" width="900" height="600"></canvas>
-      <div class="hud" id="hud"></div>
+        <canvas id="c" width="900" height="600"></canvas>
+        <div class="hud" id="hud"></div>
     </div>
     <!-- index.html (AUSSCHNITT: nur das <aside> mit neuen Dev-Buttons) -->
-<aside class="side">
-  <h2>Steuerung</h2>
-  <div class="grid">
-    <button id="btnStart">▶️ Nächste Welle</button>
-    <!-- index.html (AUSSCHNITT: Build-Zeile im <aside>) -->
-<div class="row">
-  <button id="btnBuild">🏗️ Turm bauen <span class="pill" id="costBuild">50</span></button>
-  <button id="btnCancel" title="Modus abbrechen">❌</button>
-  <button id="btnDebug">🐞 Debug: Kosten 0</button>
+    <aside class="side">
+        <h2 id="lblControls">Steuerung</h2>
+        <div class="grid">
+            <button id="btnStart">▶️ Nächste Welle</button>
+            <!-- index.html (AUSSCHNITT: Build-Zeile im <aside>) -->
+            <div class="row">
+                <button id="btnBuild">🏗️ Turm bauen <span class="pill" id="costBuild">50</span></button>
+                <button id="btnCancel" title="Modus abbrechen">❌</button>
+                <button id="btnDebug">🐞 Debug: Kosten 0</button>
+            </div>
+
+            <div class="row">
+                <button id="btnRepair">🛠️ +10 Burg-HP <span class="pill" id="costRepair">20</span></button>
+                <button id="btnMaxHp">🧱 +20 max HP <span class="pill" id="costMaxHp">60</span></button>
+            </div>
+
+            <!-- NEU: Dev-Tools -->
+            <div class="sep"></div>
+            <h3 id="devTitle" style="margin:4px 0 0;font-size:14px;opacity:.8">Dev-Tools</h3>
+            <div class="row">
+                <button id="btnDevWave">🧪 Testwelle</button>
+                <button id="btnDevSpawn">👾 1 Gegner</button>
+            </div>
+            <div class="row">
+                <button id="btnDevSpeed">⏩ Speed ×1</button>
+                <button id="btnDevHit">🎯 Hitboxen/Path: AUS</button>
+                <button id="btnDevOverlay">🧬 DoT-Overlay: AUS</button>
+            </div>
+
+            <div class="sep"></div>
+            <div id="towerPanel" class="notice small">Kein Turm ausgewählt. Klicke einen Turm an, um ihn zu upgraden.
+            </div>
+            <div class="sep"></div>
+            <div class="notice small">
+                <div class="row" id="helpEnter"><span class="kbd">Enter</span> Welle starten</div>
+                <div class="row" id="helpBuild"><span class="kbd">B</span> Bauen-Modus · <span class="kbd">Esc</span>
+                    Abbrechen
+                </div>
+                <div class="row" id="helpUp"><span class="kbd">U</span> Schnell-Upgrade: Schaden</div>
+                <div class="row" id="helpPause"><span class="kbd">P</span> Pause/Weiter</div>
+            </div>
+        </div>
+    </aside>
 </div>
 
-    <div class="row">
-      <button id="btnRepair">🛠️ +10 Burg-HP <span class="pill" id="costRepair">20</span></button>
-      <button id="btnMaxHp">🧱 +20 max HP <span class="pill" id="costMaxHp">60</span></button>
-    </div>
-
-    <!-- NEU: Dev-Tools -->
-    <div class="sep"></div>
-    <h3 style="margin:4px 0 0;font-size:14px;opacity:.8">Dev-Tools</h3>
-    <div class="row">
-      <button id="btnDevWave">🧪 Testwelle</button>
-      <button id="btnDevSpawn">👾 1 Gegner</button>
-    </div>
-    <div class="row">
-      <button id="btnDevSpeed">⏩ Speed ×1</button>
-      <button id="btnDevHit">🎯 Hitboxen/Path: AUS</button>
-      <button id="btnDevOverlay">🧬 DoT-Overlay: AUS</button>
-    </div>
-
-    <div class="sep"></div>
-    <div id="towerPanel" class="notice small">Kein Turm ausgewählt. Klicke einen Turm an, um ihn zu upgraden.</div>
-    <div class="sep"></div>
-    <div class="notice small">
-      <div class="row"><span class="kbd">Enter</span> Welle starten</div>
-      <div class="row"><span class="kbd">B</span> Bauen-Modus · <span class="kbd">Esc</span> Abbrechen</div>
-      <div class="row"><span class="kbd">U</span> Schnell-Upgrade: Schaden</div>
-      <div class="row"><span class="kbd">P</span> Pause/Weiter</div>
-    </div>
-  </div>
-  
-</aside>
-
-  </div>
-
-  <script type="module" src="./main.js"></script>
+<script type="module" src="./main.js"></script>
 </body>
 </html>

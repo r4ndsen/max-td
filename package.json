@@ -1,0 +1,14 @@
+{
+  "name": "max-td",
+  "private": true,
+  "version": "0.0.0",
+  "description": "Tower Defense – modular build (ESM, browser)",
+  "scripts": {
+    "lint": "eslint .",
+    "lint:fix": "eslint . --fix"
+  },
+  "devDependencies": {
+    "eslint": "^9.7.0"
+  }
+}
+

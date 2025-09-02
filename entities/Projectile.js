@@ -1,12 +1,12 @@
 // entities/Projectile.js
 import { CONFIG } from '../config.js';
-import { addFireStack, addPoisonStack, addOrRefreshIce, applyDamage } from '../effects.js';
+import { addFireStack, addPoisonStack, addOrRefreshIce, applyDamage, triggerIceNova, triggerPoisonNova } from '../effects.js';
 
 export class Projectile{
   constructor(from,target){
     this.pos={x:from.x,y:from.y};
     this.target=target;
-    this.speed=CONFIG.tower.projectileSpeed;
+    this.speed=from.projectileSpeed || CONFIG.tower.projectileSpeed;
     this.damage=from.damage;
     this.critChance=from.critChance;
     this.critMult=from.critMult;
@@ -26,8 +26,16 @@ export class Projectile{
 
       // DoTs anwenden (mit Level)
       if(this.mods.fire && this.dotLevels.fire>0)     addFireStack(this.target,   this.dotLevels.fire);
-      if(this.mods.poison && this.dotLevels.poison>0) addPoisonStack(this.target, this.dotLevels.poison);
-      if(this.mods.ice)                                addOrRefreshIce(this.target);
+      if(this.mods.poison && this.dotLevels.poison>0){
+        const hadPoison = this.target.effects?.some?.(e=>e.type==='poison');
+        addPoisonStack(this.target, this.dotLevels.poison);
+        if(hadPoison) triggerPoisonNova(this.target, this.dotLevels.poison);
+      }
+      if(this.mods.ice){
+        const hadIce = this.target.effects?.some?.(e=>e.type==='ice');
+        addOrRefreshIce(this.target);
+        if(hadIce) triggerIceNova(this.target);
+      }
 
       this.alive=false; return;
     }

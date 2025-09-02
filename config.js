@@ -14,7 +14,7 @@ export const CONFIG = {
       crit:{ baseCost:55, scaling:1.28, addChancePerLevel:0.05, maxChance:0.5, multBase:1.5, multPerLevelAdd:0.1 },
 
       // Elemente / Spezialisierungen (exklusiv pro Turm)
-      ice:{ cost:80, slowMult:0.6, duration:2.5 },
+      ice:{ cost:80, slowMult:0.6, duration:2.5, nova:{ radius:120, durationMult:0.6, ttl:0.6 } },
 
       fire:{
         baseCost:90, scaling:1.35,
@@ -25,9 +25,10 @@ export const CONFIG = {
       },
       poison:{
         baseCost:85, scaling:1.35,
-        baseDmg:4, duration:5.0, baseTick:1.0,
-        dmgPerLevelMul:1.20, tickPerLevelMul:0.9,
-        maxLevel:5, maxStacks:3
+        baseDmg:6, duration:5.0, baseTick:0.75,
+        dmgPerLevelMul:1.30, tickPerLevelMul:0.9,
+        maxLevel:5, maxStacks:3,
+        nova:{ radius:120, durationMult:0.6, ttl:0.6 }
       },
 
       // 💣 Bomben-Upgrade (AoE statt Pfeil, langsameres Feuern, Radius skaliert mit Level)
@@ -37,6 +38,14 @@ export const CONFIG = {
         projectileSpeed:360,
         radiusBaseFactor: 2/3,      // Basisradius = 2/3 von fire.explosion.radius
         radiusPerLevel: 12          // +12 pro Bomben-Level
+      },
+      // 🎯 Sniper-Upgrade (starker Einzelschuss, langsamere Feuerrate, mehr Reichweite)
+      sniper:{
+        baseCost:120, scaling:1.36, maxLevel:3,
+        cooldownMult:1.9,               // deutlich langsamer
+        damageMultBase:2.5, damageMultPerLevel:0.25,
+        rangeAddBase:120, rangePerLevel:20,
+        projectileSpeed:1200
       },
     }
   },

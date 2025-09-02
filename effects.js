@@ -2,7 +2,7 @@
 import { CONFIG } from './config.js';
 import { state } from './state.js';
 import { Utils } from './utils.js';
-import { addExplosionRing } from './vfx.js';
+import { addExplosionRing, addIceNovaRing, addPoisonNovaRing } from './vfx.js';
 
 export const MAX_FIRE_STACKS   = CONFIG.tower.upgrades.fire.maxStacks;
 export const MAX_POISON_STACKS = CONFIG.tower.upgrades.poison.maxStacks;
@@ -91,6 +91,46 @@ export function triggerFireDeathExplosion(deadEnemy){
     }
   }
   addExplosionRing(deadEnemy.pos.x, deadEnemy.pos.y, radius, 0.6);
+}
+
+// Ice Nova: when hitting an already iced target again, spread a shorter ice to nearby enemies
+export function triggerIceNova(centerEnemy){
+  const U = CONFIG.tower.upgrades.ice;
+  const N = U.nova || { radius: 100, durationMult: 0.6, ttl: 0.5 };
+  const radius = N.radius;
+  const dur = Math.max(0.2, (U.duration||2.0) * (N.durationMult||0.6));
+
+  for(const other of state.enemies){
+    if(other===centerEnemy || other.hp<=0) continue;
+    if(Utils.dist(centerEnemy.pos, other.pos) <= radius){
+      let ice = other.effects.find(e=>e.type==='ice');
+      if(!ice) other.effects.push({ type:'ice', time:dur, slowMult:U.slowMult });
+      else { ice.time = Math.max(ice.time, dur); ice.slowMult = Math.min(ice.slowMult||1, U.slowMult); }
+    }
+  }
+  addIceNovaRing(centerEnemy.pos.x, centerEnemy.pos.y, radius, N.ttl||0.6);
+}
+
+// Poison Nova: when hitting an already poisoned target again, emit a poison DoT to nearby enemies
+export function triggerPoisonNova(centerEnemy, level){
+  const U = CONFIG.tower.upgrades.poison;
+  const N = U.nova || { radius: 100, durationMult: 0.6, ttl: 0.5 };
+  const base = makePoisonStackFromLevel(Math.max(1, level|0));
+  const radius = N.radius;
+  const aoeDmg  = base.dmg;
+  const aoeTick = Math.max(MIN_TICK, base.tick);
+  const aoeDur  = Math.max(0.2, base.duration*(N.durationMult||0.6));
+
+  for(const other of state.enemies){
+    if(other===centerEnemy || other.hp<=0) continue;
+    if(Utils.dist(centerEnemy.pos, other.pos) <= radius){
+      const t0    = clamp(jitter(aoeTick*0.7, 0.35), MIN_TICK*0.5, aoeTick);
+      const time0 = clamp(jitter(aoeDur, Math.min(0.25, (aoeTick/aoeDur)*0.5)), 0.2, aoeDur*1.15);
+      const stack = { type:'poison', time:time0, duration:aoeDur, dmg:aoeDmg, tick:aoeTick, t:t0 };
+      insertOrReplaceOldest(other, stack, 'poison', MAX_POISON_STACKS);
+    }
+  }
+  addPoisonNovaRing(centerEnemy.pos.x, centerEnemy.pos.y, radius, N.ttl||0.6);
 }
 
 // Effekte updaten (ohne Explosion bei Ablauf!)

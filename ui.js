@@ -2,6 +2,7 @@
 import { CONFIG } from './config.js';
 import { state } from './state.js';
 import { buildCost, repairCost, maxHpCost } from './cost.js';
+import { t } from './i18n.js';
 
 const hud = document.getElementById('hud');
 const towerPanel = document.getElementById('towerPanel');
@@ -25,7 +26,6 @@ const btnDevOverlay = document.getElementById('btnDevOverlay');
 let uiDirty=true, uiScheduled=false;
 
 export function refreshStaticCosts(){
-  const costBuildEl = document.getElementById('costBuild');
   if(costBuildEl) costBuildEl.textContent = buildCost(state);
   if(costRepairEl) costRepairEl.textContent = repairCost(state);
   if(costMaxHpEl)  costMaxHpEl.textContent = maxHpCost(state);
@@ -34,9 +34,9 @@ export function refreshStaticCosts(){
 }
 function refreshDevLabels(){
   if(!btnDevSpeed) return;
-  btnDevSpeed.textContent = `⏩ Speed ×${state.dev.speed}`;
-  btnDevHit.textContent   = `🎯 Hitboxen/Path: ${state.dev.showHit?'AN':'AUS'}`;
-  btnDevOverlay.textContent = `🧬 DoT-Overlay: ${state.dev.showOverlay?'AN':'AUS'}`;
+  btnDevSpeed.textContent = `⏩ ${t('dev.speed',{x: state.dev.speed})}`;
+  btnDevHit.textContent   = `🎯 ${t('dev.hitToggle',{state: state.dev.showHit? t('common.on'): t('common.off')})}`;
+  btnDevOverlay.textContent = `🧬 ${t('dev.overlayToggle',{state: state.dev.showOverlay? t('common.on'): t('common.off')})}`;
   btnDevHit.classList.toggle('toggle-on', state.dev.showHit);
   btnDevOverlay.classList.toggle('toggle-on', state.dev.showOverlay);
 }
@@ -67,9 +67,9 @@ export function initUI({startWave, tryPlaceTower, selectNone, spawnOne}){
 
   towerPanel.addEventListener('click', (e)=>{
     const upg=e.target.closest('button[data-upg]');
-    if(upg){ const t=state.selectedTower; if(!t) return; t.upgrade(state, upg.dataset.upg); markUiDirty(); return; }
+    if(upg){ const tw=state.selectedTower; if(!tw) return; tw.upgrade(state, upg.dataset.upg); markUiDirty(); return; }
     const modeBtn=e.target.closest('button[data-mode]');
-    if(modeBtn){ const t=state.selectedTower; if(!t) return; t.targetMode = modeBtn.dataset.mode; markUiDirty(); }
+    if(modeBtn){ const tw=state.selectedTower; if(!tw) return; tw.targetMode = modeBtn.dataset.mode; markUiDirty(); }
   });
 
   window.addEventListener('keydown', e=>{
@@ -90,67 +90,75 @@ export function renderHUD(){
   if(!uiDirty) return;
   hud.innerHTML='';
   const make=(l,v,c)=>{ const b=document.createElement('div'); b.className='badge'; if(c) b.style.borderColor=c; b.textContent=l+': '+v; hud.appendChild(b); };
-  make('Gold', state.gold);
-  make('Welle', state.wave + (state.spawning?' (aktiv)':' – bereit'));
-  make('Burg', state.castle.hp+'/'+state.castle.maxHp, state.castle.hp/state.castle.maxHp<0.34? 'var(--bad)':undefined);
-  make('Türme', state.towers.length);
-  make('Gegner', state.enemies.length);
-  if(state.debugFree) make('Debug','Kosten 0','var(--good)');
-  if(state.paused) make('Pause','AN','var(--warn)');
-  if(state.buildMode) make('Bauen','Klick zum Platzieren','var(--accent)');
+  make(t('hud.gold'), state.gold);
+  make(t('hud.wave'), state.wave + (state.spawning? t('hud.wave.active'): t('hud.wave.ready')));
+  make(t('hud.castle'), state.castle.hp+'/'+state.castle.maxHp, state.castle.hp/state.castle.maxHp<0.34? 'var(--bad)':undefined);
+  make(t('hud.towers'), state.towers.length);
+  make(t('hud.enemies'), state.enemies.length);
+  if(state.debugFree) make(t('hud.debug'), t('btn.debugFree'),'var(--good)');
+  if(state.paused) make(t('hud.pause'), t('hud.pause.on'),'var(--warn)');
+  if(state.buildMode) make(t('hud.build'), t('hud.build.hint'),'var(--accent)');
   if(state.selectedTower){
-    const t=state.selectedTower;
+    const tw=state.selectedTower;
     // ui.js (Ausschnitt: renderHUD() – Tower-Panel)
     // … im Block if(state.selectedTower) { const t=state.selectedTower; … }
 
-    const can =(type)=> t.canUpgrade(state,type)? '' : 'disabled';
-    const cost=(type)=>{ const c=t.upgradeCost(state)(type); return (c===null)? '–':c; };
-    const L  =(k)=> `${t.levels[k]}/${CONFIG.tower.maxLevelPerTrack}`;
-    const modeBtn=(key,label,icon)=>`<button data-mode="${key}" class="${t.targetMode===key?'toggle-on':''}">${icon} ${label}</button>`;
+    const can =(type)=> tw.canUpgrade(state,type)? '' : 'disabled';
+    const cost=(type)=>{ const c=tw.upgradeCost(state)(type); return (c===null)? '–':c; };
+    const L  =(k)=> `${tw.levels[k]}/${CONFIG.tower.maxLevelPerTrack}`;
+    const modeBtn=(key,label,icon)=>`<button data-mode="${key}" class="${tw.targetMode===key?'toggle-on':''}">${icon} ${label}</button>`;
 
     // Exklusivität: nur gewählten Track zeigen
-    const showFireOnly   = t.dotLevels?.fire>0;
-    const showPoisonOnly = t.dotLevels?.poison>0;
-    const showIceOnly    = t.elements?.ice;
-    const showBombOnly   = t.bombLevel>0;
-    const showAllSpecs   = !showFireOnly && !showPoisonOnly && !showIceOnly && !showBombOnly;
+    const showFireOnly   = tw.dotLevels?.fire>0;
+    const showPoisonOnly = tw.dotLevels?.poison>0;
+    const showIceOnly    = tw.elements?.ice;
+    const showBombOnly   = tw.bombLevel>0;
+    const showSniperOnly = tw.sniperLevel>0;
+    const showAllSpecs   = !showFireOnly && !showPoisonOnly && !showIceOnly && !showBombOnly && !showSniperOnly;
 
     let specRow = '';
-    if(showAllSpecs || showFireOnly)   specRow += `<button ${can('fire')} data-upg="fire">🔥 Feuer <span class="pill">${cost('fire')}</span> <span class="small">L${t.dotLevels.fire}/${CONFIG.tower.upgrades.fire.maxLevel}</span></button>`;
-    if(showAllSpecs || showPoisonOnly) specRow += `<button ${can('poison')} data-upg="poison">☠️ Gift <span class="pill">${cost('poison')}</span> <span class="small">L${t.dotLevels.poison}/${CONFIG.tower.upgrades.poison.maxLevel}</span></button>`;
-    if(showAllSpecs || showIceOnly)    specRow += `<button ${can('ice')} data-upg="ice">❄️ Eis <span class="pill">${cost('ice')}</span> <span class="small">${t.elements.ice?'Aktiv':'–'}</span></button>`;
-    if(showAllSpecs || showBombOnly)   specRow += `<button ${can('bomb')} data-upg="bomb">💣 Bombe <span class="pill">${cost('bomb')}</span> <span class="small">L${t.bombLevel}/${CONFIG.tower.upgrades.bomb.maxLevel}</span></button>`;
+    if(showAllSpecs || showFireOnly)   specRow += `<button ${can('fire')} data-upg="fire">🔥 ${t('tower.track.fire')} <span class="pill">${cost('fire')}</span> <span class="small">L${tw.dotLevels.fire}/${CONFIG.tower.upgrades.fire.maxLevel}</span></button>`;
+    if(showAllSpecs || showPoisonOnly) specRow += `<button ${can('poison')} data-upg="poison">☠️ ${t('tower.track.poison')} <span class="pill">${cost('poison')}</span> <span class="small">L${tw.dotLevels.poison}/${CONFIG.tower.upgrades.poison.maxLevel}</span></button>`;
+    if(showAllSpecs || showIceOnly)    specRow += `<button ${can('ice')} data-upg="ice">❄️ ${t('tower.track.ice')} <span class="pill">${cost('ice')}</span> <span class="small">${tw.elements.ice? t('tower.active') :'–'}</span></button>`;
+    if(showAllSpecs || showBombOnly)   specRow += `<button ${can('bomb')} data-upg="bomb">💣 ${t('tower.track.bomb')} <span class="pill">${cost('bomb')}</span> <span class="small">L${tw.bombLevel}/${CONFIG.tower.upgrades.bomb.maxLevel}</span></button>`;
+    if(showAllSpecs || (tw.sniperLevel>0)) specRow += `<button ${can('sniper')} data-upg="sniper">🎯 ${t('tower.track.sniper')} <span class="pill">${cost('sniper')}</span> <span class="small">L${tw.sniperLevel||0}/${CONFIG.tower.upgrades.sniper.maxLevel}</span></button>`;
 
     towerPanel.innerHTML = `
-      <div><strong>${t.bombLevel>0?'💣 Bomben-Turm':'🎯 Pfeilturm'}</strong></div>
-      <div class="stat"><span>Schaden</span><span>${t.damage}</span></div>
-      <div class="stat"><span>Reichweite</span><span>${Math.round(t.range)}</span></div>
-      <div class="stat"><span>${t.bombLevel>0?'Feuerrate (Bombe)':'Feuerrate'}</span><span>${(1/t.fireCooldown).toFixed(2)}/s</span></div>
-      ${t.bombLevel>0 ? `<div class="stat"><span>Blast-Radius</span><span>${Math.round(t.blastRadius)}</span></div>` : ''}
-      <div class="stat"><span>Krit</span><span>${Math.round(t.critChance*100)}% ×${t.critMult.toFixed(2)}</span></div>
+      <div><strong>${tw.sniperLevel>0?t('tower.title.sniper'): (tw.bombLevel>0?t('tower.title.bomb'):t('tower.title.archer'))}</strong></div>
+      <div class="stat"><span>${t('tower.stat.damage')}</span><span>${tw.damage}</span></div>
+      <div class="stat"><span>${t('tower.stat.range')}</span><span>${Math.round(tw.range)}</span></div>
+      <div class="stat"><span>${tw.sniperLevel>0?t('tower.stat.firerate.sniper'): (tw.bombLevel>0?t('tower.stat.firerate.bomb'):t('tower.stat.firerate'))}</span><span>${(1/tw.fireCooldown).toFixed(2)}/s</span></div>
+      ${tw.bombLevel>0 ? `<div class=\"stat\"><span>${t('tower.stat.blastradius')}</span><span>${Math.round(tw.blastRadius)}</span></div>` : ''}
+      <div class="stat"><span>${t('tower.stat.crit')}</span><span>${Math.round(tw.critChance*100)}% ×${tw.critMult.toFixed(2)}</span></div>
 
-      <div class="row" style="margin:6px 0 2px"><span class="small">Zielmodus:</span></div>
+      <div class="row" style="margin:6px 0 2px"><span class="small">${t('tower.target.mode')}</span></div>
       <div class="row" style="margin-top:2px">
-        ${modeBtn('strongest','Stärkste','💪')}
-        ${modeBtn('lowest','Niedrigste HP','🩸')}
-        ${modeBtn('nearest','Nächste','📍')}
-        ${modeBtn('furthest','Weiteste','📡')}
-        ${modeBtn('first','Erster Gegner','⏮️')}
-        ${modeBtn('last','Letzter Gegner','⏭️')}
+        ${modeBtn('strongest',t('tower.target.strongest'),'💪')}
+        ${modeBtn('lowest',t('tower.target.lowest'),'🩸')}
+        ${modeBtn('nearest',t('tower.target.nearest'),'📍')}
+        ${modeBtn('furthest',t('tower.target.furthest'),'📡')}
+        ${modeBtn('first',t('tower.target.first'),'⏮️')}
+        ${modeBtn('last',t('tower.target.last'),'⏭️')}
+        ${tw.dotLevels.fire>0 ? modeBtn('burning',t('tower.target.burning'),'🔥') : ''}
       </div>
 
       <div class="row" style="margin-top:8px">
-        <button ${can('dmg')} data-upg="dmg">⬆️ Schaden <span class="pill">${cost('dmg')}</span></button>
-        <button ${can('rng')} data-upg="rng">🎯 Reichweite <span class="pill">${cost('rng')}</span></button>
-        <button ${can('spd')} data-upg="spd">⚡ Tempo <span class="pill">${cost('spd')}</span></button>
-        <button ${can('crit')} data-upg="crit">💥 Krits <span class="pill">${cost('crit')}</span></button>
+        <button ${can('dmg')} data-upg="dmg">⬆️ ${t('tower.upg.damage')} <span class="pill">${cost('dmg')}</span></button>
+        <button ${can('rng')} data-upg="rng">🎯 ${t('tower.upg.range')} <span class="pill">${cost('rng')}</span></button>
+        <button ${can('spd')} data-upg="spd">⚡ ${t('tower.upg.speed')} <span class="pill">${cost('spd')}</span></button>
+        <button ${can('crit')} data-upg="crit">💥 ${t('tower.upg.crit')} <span class="pill">${cost('crit')}</span></button>
       </div>
 
       <div class="row">${specRow}</div>
-      <div class="small" style="opacity:.8;margin-top:6px">Levels: DMG ${L('dmg')}, RNG ${L('rng')}, SPD ${L('spd')}, CRIT ${L('crit')}</div>
+      <div class="small" style="opacity:.8;margin-top:6px">${t('tower.levels')
+        .replace('{dmg}', L('dmg'))
+        .replace('{rng}', L('rng'))
+        .replace('{spd}', L('spd'))
+        .replace('{crit}', L('crit'))}
+      </div>
     `;
 
   } else {
-    towerPanel.textContent = 'Kein Turm ausgewählt. Klicke einen Turm an, um ihn zu upgraden.';
+    towerPanel.textContent = t('notice.noTower');
   }
 }

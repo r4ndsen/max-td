@@ -16,6 +16,14 @@ export function pickTarget(inRange, mode){
   if(inRange.length===0) return null;
   let pick = inRange[0];
   switch(mode){
+    case 'burning': {
+      // Prefer already burning enemies; fallback to nearest overall
+      const burning = inRange.filter(it=> it.e.effects?.some?.(ef=>ef.type==='fire'));
+      const pool = burning.length>0 ? burning : inRange;
+      let best = pool[0];
+      for(const it of pool) if(it.d < best.d) best = it; // nearest among pool
+      return best.e;
+    }
     case 'strongest': for(const it of inRange) if(it.e.hp > pick.e.hp) pick=it; break;
     case 'lowest':    for(const it of inRange) if(it.e.hp < pick.e.hp) pick=it; break;
     case 'nearest':   for(const it of inRange) if(it.d    < pick.d)    pick=it; break;

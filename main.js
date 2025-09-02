@@ -8,6 +8,7 @@ import { Tower } from './entities/Tower.js';
 import { Projectile } from './entities/Projectile.js'; // falls benötigt in draw/update
 import { updateVFX, drawVFX } from './vfx.js';
 import { initUI, markUiDirty, refreshStaticCosts } from './ui.js';
+import { initI18n, onLanguageChange } from './i18n.js';
 import { triggerFireDeathExplosion } from './effects.js';
 
 const canvas = document.getElementById('c');
@@ -187,6 +188,8 @@ function loop(now){
 }
 
 // ---------- UI init ----------
+initI18n();
+onLanguageChange(()=>{ refreshStaticCosts(); markUiDirty(); });
 initUI({
   startWave,
   tryPlaceTower,
