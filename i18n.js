@@ -1,7 +1,8 @@
 // Simple i18n for vanilla JS app
 import en from './locales/en.js';
 import de from './locales/de.js';
-const dictionaries = { en, de };
+import it from './locales/it.js';
+const dictionaries = { en, de, it };
 
 let currentLang = (localStorage.getItem('lang') || document.documentElement.lang || 'de').slice(0,2);
 if(!dictionaries[currentLang]) currentLang = 'de';
@@ -41,6 +42,7 @@ export function initI18n(){
     sel.innerHTML = `
       <option value="de">Deutsch</option>
       <option value="en">English</option>
+      <option value="it">Italiano</option>
     `;
     sel.value = currentLang;
     sel.onchange = ()=> setLanguage(sel.value);

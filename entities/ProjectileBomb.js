@@ -14,6 +14,7 @@ export class ProjectileBomb{
     this.radius = 4;
     this.alive = true;
     this.blastRadius = blastRadius;
+    this.kind = 'bomb';
   }
 
   update(dt){
@@ -47,7 +48,9 @@ export class ProjectileBomb{
           const hasIce    = eff.some(x=>x.type==='ice');
           const hasFire   = eff.some(x=>x.type==='fire');
           const hasPoison = eff.some(x=>x.type==='poison');
-          const mult = (hasIce && hasFire && hasPoison) ? 2 : 1;
+          const tripleMult = (hasIce && hasFire && hasPoison) ? 2 : 1;
+          const curseAmp = eff.reduce((m,x)=> x.type==='curse' ? Math.max(m, x.amp||0) : m, 0);
+          const mult = tripleMult * (1 + curseAmp);
           e.hp -= dmg * mult;
         }
       }

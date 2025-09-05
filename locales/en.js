@@ -42,6 +42,9 @@ export default {
   'tower.title.archer': '🎯 Arrow Tower',
   'tower.title.bomb': '💣 Bomb Tower',
   'tower.title.sniper': '🎯 Sniper',
+  'tower.title.curse': '🧿 Curse Tower',
+  'tower.title.lightning': '⚡ Lightning Tower',
+  'tower.title.gatling': '⚙️ Gatling Tower',
   'tower.stat.damage': 'Damage',
   'tower.stat.range': 'Range',
   'tower.stat.firerate': 'Fire rate',
@@ -66,10 +69,12 @@ export default {
   'tower.track.ice': 'Ice',
   'tower.track.bomb': 'Bomb',
   'tower.track.sniper': 'Sniper',
+  'tower.track.curse': 'Curse',
+  'tower.track.lightning': 'Lightning',
+  'tower.track.gatling': 'Gatling',
   'tower.active': 'Active',
   'tower.levels': 'Levels: DMG {dmg}, RNG {rng}, SPD {spd}, CRIT {crit}',
 
   'common.on': 'ON',
   'common.off': 'OFF'
 };
-

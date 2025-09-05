@@ -114,7 +114,9 @@ export function renderHUD(){
     const showIceOnly    = tw.elements?.ice;
     const showBombOnly   = tw.bombLevel>0;
     const showSniperOnly = tw.sniperLevel>0;
-    const showAllSpecs   = !showFireOnly && !showPoisonOnly && !showIceOnly && !showBombOnly && !showSniperOnly;
+    const showCurseOnly  = (tw.dotLevels?.curse||0)>0;
+    const showLightningOnly = (tw.dotLevels?.lightning||0)>0;
+    const showAllSpecs   = !showFireOnly && !showPoisonOnly && !showIceOnly && !showBombOnly && !showSniperOnly && !showCurseOnly && !showLightningOnly;
 
     let specRow = '';
     if(showAllSpecs || showFireOnly)   specRow += `<button ${can('fire')} data-upg="fire">🔥 ${t('tower.track.fire')} <span class="pill">${cost('fire')}</span> <span class="small">L${tw.dotLevels.fire}/${CONFIG.tower.upgrades.fire.maxLevel}</span></button>`;
@@ -122,9 +124,21 @@ export function renderHUD(){
     if(showAllSpecs || showIceOnly)    specRow += `<button ${can('ice')} data-upg="ice">❄️ ${t('tower.track.ice')} <span class="pill">${cost('ice')}</span> <span class="small">${tw.elements.ice? t('tower.active') :'–'}</span></button>`;
     if(showAllSpecs || showBombOnly)   specRow += `<button ${can('bomb')} data-upg="bomb">💣 ${t('tower.track.bomb')} <span class="pill">${cost('bomb')}</span> <span class="small">L${tw.bombLevel}/${CONFIG.tower.upgrades.bomb.maxLevel}</span></button>`;
     if(showAllSpecs || (tw.sniperLevel>0)) specRow += `<button ${can('sniper')} data-upg="sniper">🎯 ${t('tower.track.sniper')} <span class="pill">${cost('sniper')}</span> <span class="small">L${tw.sniperLevel||0}/${CONFIG.tower.upgrades.sniper.maxLevel}</span></button>`;
+    if(showAllSpecs || showCurseOnly)  specRow += `<button ${can('curse')} data-upg="curse">🧿 ${t('tower.track.curse')} <span class="pill">${cost('curse')}</span> <span class="small">L${tw.dotLevels.curse||0}/${(CONFIG.tower.upgrades.curse.maxLevel||5)}</span></button>`;
+    if(showAllSpecs || showLightningOnly)  specRow += `<button ${can('lightning')} data-upg="lightning">⚡ ${t('tower.track.lightning')} <span class="pill">${cost('lightning')}</span> <span class="small">L${tw.dotLevels.lightning||0}/${(CONFIG.tower.upgrades.lightning.maxLevel||5)}</span></button>`;
+    const showGatlingOnly = (tw.dotLevels?.gatling||0)>0;
+    if(showAllSpecs || showGatlingOnly)  specRow += `<button ${can('gatling')} data-upg="gatling">⚙️ ${t('tower.track.gatling')} <span class="pill">${cost('gatling')}</span> <span class="small">L${tw.dotLevels.gatling||0}/${(CONFIG.tower.upgrades.gatling.maxLevel||5)}</span></button>`;
 
+    const title = (
+      tw.sniperLevel>0 ? t('tower.title.sniper') :
+      tw.bombLevel>0 ? t('tower.title.bomb') :
+      (tw.dotLevels?.lightning||0)>0 ? t('tower.title.lightning') :
+      (tw.dotLevels?.gatling||0)>0 ? t('tower.title.gatling') :
+      (tw.dotLevels?.curse||0)>0 ? t('tower.title.curse') :
+      t('tower.title.archer')
+    );
     towerPanel.innerHTML = `
-      <div><strong>${tw.sniperLevel>0?t('tower.title.sniper'): (tw.bombLevel>0?t('tower.title.bomb'):t('tower.title.archer'))}</strong></div>
+      <div><strong>${title}</strong></div>
       <div class="stat"><span>${t('tower.stat.damage')}</span><span>${tw.damage}</span></div>
       <div class="stat"><span>${t('tower.stat.range')}</span><span>${Math.round(tw.range)}</span></div>
       <div class="stat"><span>${tw.sniperLevel>0?t('tower.stat.firerate.sniper'): (tw.bombLevel>0?t('tower.stat.firerate.bomb'):t('tower.stat.firerate'))}</span><span>${(1/tw.fireCooldown).toFixed(2)}/s</span></div>

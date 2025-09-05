@@ -7,6 +7,9 @@ header .sub{opacity:.7;font-size:12px;margin-left:8px}
 .wrap{display:grid;grid-template-columns: 920px 1fr;gap:16px;max-width:1400px;margin:10px auto;padding:0 12px}
 #game{background:#0b0f1a;border:1px solid #232842;border-radius:12px;position:relative}
 canvas{display:block;border-radius:12px}
+.three-canvas{display:block;border-radius:12px}
+#three-root{position:absolute;inset:0;z-index:0}
+#overlay{position:absolute;inset:0;z-index:1;pointer-events:none}
 .hud{position:absolute;left:10px;top:10px;display:flex;gap:8px;flex-wrap:wrap}
 .badge{background:rgba(255,255,255,.07);padding:6px 10px;border-radius:999px;border:1px solid #2a3050}
 .side{background:var(--panel);border:1px solid #252a44;border-radius:14px;padding:12px;position:sticky;top:64px;height:fit-content}

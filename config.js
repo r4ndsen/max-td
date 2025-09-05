@@ -1,7 +1,7 @@
 // config.js
 export const CONFIG = {
   pathPoints: [ {x:-40,y:100},{x:300,y:100},{x:300,y:500},{x:600,y:500},{x:600,y:100},{x:940,y:100} ],
-  pathBuffer: 40,
+  pathBuffer: 60,
   tower: {
     cost: 50, range: 120, damage: 20, fireCooldown: 0.7, projectileSpeed: 420,
     maxLevelPerTrack: 5,
@@ -30,6 +30,13 @@ export const CONFIG = {
         maxLevel:5, maxStacks:3,
         nova:{ radius:120, durationMult:0.6, ttl:0.6 }
       },
+      // 📿 Curse-Upgrade (Fluch): verstärkt erlittenen Schaden anderer Türme
+      curse:{
+        baseCost:95, scaling:1.5, maxLevel:5,
+        duration:10.0,
+        ampBase:0.20,           // +20% bei L1
+        ampPerLevel:0.1         // +10% je weiterem Level
+      },
 
       // 💣 Bomben-Upgrade (AoE statt Pfeil, langsameres Feuern, Radius skaliert mit Level)
       bomb:{
@@ -46,6 +53,21 @@ export const CONFIG = {
         damageMultBase:2.5, damageMultPerLevel:0.25,
         rangeAddBase:120, rangePerLevel:20,
         projectileSpeed:1200
+      },
+      // ⚡ Lightning-Upgrade: Kettenblitz auf mehrere Ziele
+      lightning:{
+        baseCost:110, scaling:1.36, maxLevel:5,
+        chainBase:3,          // Start: bis zu 3 Ziele
+        chainPerLevel:1,      // +1 Ziel pro Level
+        chainRadius:180       // max Distanz vom letzten getroffenen Ziel
+      },
+      // 🔸 Gatling-Upgrade: sehr schnelle Feuerrate, geringerer Einzelschaden
+      gatling:{
+        baseCost:105, scaling:1.34, maxLevel:5,
+        cooldownBase:0.6,          // Basis: 40% schnellere Feuerrate
+        cooldownPerLevel:0.9,      // +10% schneller pro Level
+        damageMultBase:0.75,       // pro Schuss geringerer Schaden
+        damageMultPerLevel:0.05    // +5% Schaden pro Level
       },
     }
   },

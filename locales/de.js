@@ -42,6 +42,9 @@ export default {
   'tower.title.archer': '🎯 Pfeilturm',
   'tower.title.bomb': '💣 Bomben-Turm',
   'tower.title.sniper': '🎯 Scharfschütze',
+  'tower.title.curse': '🧿 Fluch-Turm',
+  'tower.title.lightning': '⚡ Blitz-Turm',
+  'tower.title.gatling': '⚙️ Gatling-Turm',
   'tower.stat.damage': 'Schaden',
   'tower.stat.range': 'Reichweite',
   'tower.stat.firerate': 'Feuerrate',
@@ -66,10 +69,12 @@ export default {
   'tower.track.ice': 'Eis',
   'tower.track.bomb': 'Bombe',
   'tower.track.sniper': 'Sniper',
+  'tower.track.curse': 'Fluch',
+  'tower.track.lightning': 'Blitz',
+  'tower.track.gatling': 'Gatling',
   'tower.active': 'Aktiv',
   'tower.levels': 'Levels: DMG {dmg}, RNG {rng}, SPD {spd}, CRIT {crit}',
 
   'common.on': 'AN',
   'common.off': 'AUS'
 };
-

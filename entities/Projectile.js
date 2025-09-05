@@ -1,6 +1,6 @@
 // entities/Projectile.js
 import { CONFIG } from '../config.js';
-import { addFireStack, addPoisonStack, addOrRefreshIce, applyDamage, triggerIceNova, triggerPoisonNova } from '../effects.js';
+import { addFireStack, addPoisonStack, addOrRefreshIce, addOrRefreshCurse, applyDamage, triggerIceNova, triggerPoisonNova } from '../effects.js';
 
 export class Projectile{
   constructor(from,target){
@@ -14,6 +14,8 @@ export class Projectile{
     this.dotLevels={...from.dotLevels};  // { fire:int, poison:int }
     this.alive=true;
     this.radius=3;
+    // Kind hint used for rendering colors (arrow|ice|fire|poison|sniper|gatling)
+    this.kind = from.projectileKind || (this.mods.fire ? 'fire' : this.mods.poison ? 'poison' : this.mods.ice ? 'ice' : 'arrow');
   }
   update(dt){
     if(!this.target||this.target.hp<=0){ this.alive=false; return; }
@@ -36,10 +38,21 @@ export class Projectile{
         addOrRefreshIce(this.target);
         if(hadIce) triggerIceNova(this.target);
       }
+      if(this.kind==='curse' && (this.dotLevels.curse||0)>0){
+        addOrRefreshCurse(this.target, this.dotLevels.curse||1);
+      }
 
       this.alive=false; return;
     }
     const nx=dx/d, ny=dy/d; this.pos.x+=nx*this.speed*dt; this.pos.y+=ny*this.speed*dt;
   }
-  draw(ctx){ ctx.fillStyle='#eae7b1'; ctx.beginPath(); ctx.arc(this.pos.x,this.pos.y,this.radius,0,Math.PI*2); ctx.fill(); }
+  draw(ctx){
+    let color = '#eae7b1';
+    if(this.kind==='fire') color = '#ffab6b';
+    else if(this.kind==='poison') color = '#7cf79a';
+    else if(this.kind==='ice') color = '#66d9ef';
+    else if(this.kind==='sniper') color = '#a7ffe6';
+    else if(this.kind==='gatling') color = '#f7f79a';
+    ctx.fillStyle=color; ctx.beginPath(); ctx.arc(this.pos.x,this.pos.y,this.radius,0,Math.PI*2); ctx.fill();
+  }
 }

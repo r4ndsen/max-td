@@ -14,7 +14,10 @@ export function applyDamage(enemy, amount){
   const hasIce    = enemy.effects.some(e=>e.type==='ice');
   const hasFire   = enemy.effects.some(e=>e.type==='fire');
   const hasPoison = enemy.effects.some(e=>e.type==='poison');
-  const mult = (hasIce && hasFire && hasPoison) ? 2 : 1;
+  const tripleMult = (hasIce && hasFire && hasPoison) ? 2 : 1;
+  // Curse amplification: take strongest active curse
+  const curseAmp = enemy.effects.reduce((m,e)=> e.type==='curse' ? Math.max(m, e.amp||0) : m, 0);
+  const mult = tripleMult * (1 + curseAmp);
   enemy.hp -= amount * mult;
 }
 
@@ -61,6 +64,23 @@ export function addOrRefreshIce(enemy){
   let ice = enemy.effects.find(e=>e.type==='ice');
   if(!ice) enemy.effects.push({ type:'ice', time:U.duration, slowMult:U.slowMult });
   else { ice.time = Math.max(ice.time, U.duration); ice.slowMult = Math.min(ice.slowMult||1, U.slowMult); }
+}
+
+function makeCurseFromLevel(level){
+  const U = CONFIG.tower.upgrades.curse;
+  const L = Math.max(1, level|0);
+  const amp = (U.ampBase||0.2) + (L-1)*(U.ampPerLevel||0.08);
+  const duration = U.duration || 4.0;
+  return { type:'curse', time:duration, amp };
+}
+export function addOrRefreshCurse(enemy, level){
+  const fresh = makeCurseFromLevel(level);
+  let c = enemy.effects.find(e=>e.type==='curse');
+  if(!c) enemy.effects.push(fresh);
+  else {
+    c.time = Math.max(c.time, fresh.time);
+    c.amp = Math.max(c.amp||0, fresh.amp||0);
+  }
 }
 
 // *** NEU: Feuer-AoE nur beim Tod eines brennenden Gegners ***
@@ -151,6 +171,8 @@ export function updateEffects(enemy, dt){
       if(ticks===MAX_TICKS_PER_UPDATE && ef.t<=0){ ef.t = Math.min(ef.tick*0.5, ef.tick); }
     }
 
+    // simple countdown-only effects
+    // ice handled above already; curse is countdown-only
     ef.time -= dt;
     if(ef.time<=0){ enemy.effects.splice(i,1); continue; }
     i++;

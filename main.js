@@ -13,11 +13,27 @@ import { triggerFireDeathExplosion } from './effects.js';
 
 const canvas = document.getElementById('c');
 const ctx = canvas.getContext('2d');
+const gameEl = document.getElementById('game');
+const overlay = document.getElementById('overlay');
+const octx = overlay ? overlay.getContext('2d') : null;
+let three = null;
+if(state.dev?.threeD){
+  const root3d = document.getElementById('three-root');
+  import('./render3d.js')
+    .then(m=>{ three = m.initThreeRenderer(root3d, state, CONFIG, canvas); })
+    .catch(e=>{ console.warn('3D init failed, falling back to 2D', e); three=null; try{ canvas.style.display=''; }catch(_){} });
+}
 
 let mouse={x:0,y:0};
 function getMouse(e){
-  const r=canvas.getBoundingClientRect();
-  return { x:(e.clientX-r.left)*(canvas.width/r.width), y:(e.clientY-r.top)*(canvas.height/r.height) };
+  // In 3D: map screen -> world XZ via raycast; fallback to 2D canvas mapping
+  if(three?.worldFromClient){
+    const p = three.worldFromClient(e.clientX, e.clientY);
+    if(p) return p;
+  }
+  const r=(three?.canvas||canvas).getBoundingClientRect();
+  const baseW = canvas.width, baseH = canvas.height;
+  return { x:(e.clientX-r.left)*(baseW/r.width), y:(e.clientY-r.top)*(baseH/r.height) };
 }
 
 function strokePath(width, color, alpha=1){
@@ -47,10 +63,10 @@ function drawBackground(){
   g.addColorStop(0,'#10162a'); g.addColorStop(1,'#0d1120');
   ctx.fillStyle=g; ctx.fillRect(0,0,canvas.width,canvas.height);
 
-  // Pfad
-  strokePath(40, '#0a0d16', 0.85);
-  strokePath(34, '#6f613e', 1.00);
-  strokePath(8,  'rgba(255,235,170,0.35)', 1);
+  // Pfad – breiter und erdiger (Dirt Road)
+  strokePath(80, '#0a0d16', 0.9);                 // dunkle Kante
+  strokePath(72, '#7a5b33', 1.0);                  // Hauptboden (braun)
+  strokePath(10, 'rgba(255,210,120,0.25)', 1);     // leichte Staub-Lichtkante
 
   // Burg
   ctx.fillStyle='#c7b26a';
@@ -130,8 +146,33 @@ function spawnOne(){
 }
 
 // ---------- Events ----------
-canvas.addEventListener('mousemove', e=>{ mouse=getMouse(e); });
-canvas.addEventListener('click', e=>{
+// Use game container for input so it works with 3D canvas
+function updateHoveredFromMouse(e){
+  const p=getMouse(e);
+  let hovered=null;
+  for(const t of state.towers){ if(t.contains(p)){ hovered=t; break; } }
+  state.hoveredTower = hovered;
+  gameEl.style.cursor = hovered ? 'pointer' : 'default';
+  if(three?.setHoveredTower){ three.setHoveredTower(hovered); }
+}
+
+gameEl.addEventListener('mousemove', e=>{ 
+  mouse=getMouse(e);
+  updateHoveredFromMouse(e);
+  if(three?.setMouseTilt){
+    const r=(three?.canvas||canvas).getBoundingClientRect();
+    const nx = ((e.clientX - r.left) / r.width) * 2 - 1;
+    const ny = ((e.clientY - r.top) / r.height) * 2 - 1;
+    three.setMouseTilt(nx, ny);
+  }
+});
+gameEl.addEventListener('mouseleave', ()=>{
+  if(three?.setMouseTilt){ three.setMouseTilt(0,0); }
+  state.hoveredTower = null;
+  gameEl.style.cursor = 'default';
+  if(three?.setHoveredTower){ three.setHoveredTower(null); }
+});
+gameEl.addEventListener('click', e=>{
   const p=getMouse(e);
   for(const t of state.towers){
     if(t.contains(p)){ state.selectedTower=t; state.buildMode=false; markUiDirty(); return; }
@@ -178,11 +219,17 @@ function loop(now){
   }
 
   // Render
-  drawBackground();
-  for(const t of state.towers) t.draw(ctx, state.selectedTower===t);
-  for(const e of state.enemies) e.draw(ctx);
-  for(const p of state.projectiles) p.draw?.(ctx);
-  drawVFX(ctx);
+  if(three){
+    three.update();
+    // Draw health bars on overlay in 3D mode
+    drawOverlay();
+  } else {
+    drawBackground();
+  for(const t of state.towers) t.draw(ctx, state.selectedTower===t, state.hoveredTower===t);
+    for(const e of state.enemies) e.draw(ctx);
+    for(const p of state.projectiles) p.draw?.(ctx);
+    drawVFX(ctx);
+  }
 
   requestAnimationFrame(loop);
 }
@@ -205,3 +252,101 @@ window.TD = {
   startWave, spawnOne,
   getState(){ return { wave:state.wave, spawnLeft:state.spawnLeft, spawning:state.spawning, enemies:state.enemies.length, gold:state.gold }; }
 };
+
+// ---------- Overlay (3D health bars) ----------
+function drawOverlay(){
+  if(!three || !overlay || !octx) return;
+  // Ensure overlay matches base canvas size
+  if(overlay.width !== canvas.width || overlay.height !== canvas.height){
+    overlay.width = canvas.width; overlay.height = canvas.height;
+  }
+  octx.clearRect(0,0,overlay.width, overlay.height);
+
+  // Build preview highlight at placement position
+  if(state.buildMode){
+    const center = three.screenFromWorld?.(mouse.x, mouse.y, 0);
+    if(center && center.visible){
+      // validity: path buffer, gold, spacing from other towers
+      let ok = Utils.distanceToPath(mouse, CONFIG) >= CONFIG.pathBuffer && state.gold >= buildCost(state);
+      for(const t of state.towers){ if(Utils.dist(mouse,{x:t.x,y:t.y})<40) { ok=false; break; } }
+
+      // pixel radius based on world units (fallback to 12px)
+      const r16p = three.screenFromWorld?.(mouse.x+16, mouse.y, 0);
+      const rpx = (r16p && r16p.visible) ? Math.hypot(r16p.x-center.x, r16p.y-center.y) : 12;
+
+      // dot
+      octx.save();
+      octx.globalAlpha = 0.25;
+      octx.fillStyle = ok ? '#7CFC00' : '#ff6b6b';
+      octx.beginPath(); octx.arc(center.x, center.y, rpx, 0, Math.PI*2); octx.fill();
+
+      // range ring (projected)
+      const rWorld = CONFIG.tower.range;
+      const rW = three.screenFromWorld?.(mouse.x + rWorld, mouse.y, 0);
+      const rPix = (rW && rW.visible) ? Math.hypot(rW.x-center.x, rW.y-center.y) : rWorld * (rpx/16);
+      octx.globalAlpha = 0.12; octx.fillStyle = '#9ad3ff';
+      octx.beginPath(); octx.arc(center.x, center.y, rPix, 0, Math.PI*2); octx.fill();
+      octx.restore();
+    }
+  }
+
+  // Lightning VFX (projected polylines)
+  for(const v of state.vfx){
+    if(v.type!=='lightning') continue;
+    const pts = v.pts; if(!pts||pts.length<2) continue;
+    const proj = pts.map(pt=> three.screenFromWorld?.(pt.x, pt.y, 12)).filter(p=>p && p.visible);
+    if(proj.length<2) continue;
+    const a = Math.max(0, Math.min(1, v.ttl / v.max));
+    octx.save();
+    octx.globalAlpha = 0.85 * a;
+    octx.strokeStyle = '#bde3ff';
+    octx.lineWidth = 2;
+    octx.beginPath(); octx.moveTo(proj[0].x, proj[0].y);
+    for(let i=1;i<proj.length;i++) octx.lineTo(proj[i].x, proj[i].y);
+    octx.stroke();
+    octx.globalAlpha = 0.25 * a;
+    octx.strokeStyle = '#66d9ef';
+    octx.lineWidth = 4; octx.stroke();
+    octx.restore();
+  }
+
+  for(const e of state.enemies){
+    if(e.hp<=0) continue;
+    const p = three.screenFromWorld?.(e.pos.x, e.pos.y, 12);
+    if(!p || !p.visible) continue;
+    const w=28, h=5;
+    const x = p.x - w/2;
+    const y = p.y - 28; // above sphere
+    const ratio = Math.max(0, Math.min(1, e.hp/e.maxHp));
+    // background
+    octx.fillStyle='rgba(58,63,99,0.9)'; octx.fillRect(x,y,w,h);
+    // foreground
+    octx.fillStyle = ratio>0.5? '#7CFC00' : (ratio>0.25? '#ffcc00' : '#ff6b6b');
+    octx.fillRect(x,y,w*ratio,h);
+
+    // Effects overlay similar to 2D
+    const effects = e.effects||[];
+    const fireStacks = effects.filter(s=>s.type==='fire').length;
+    const poisonStacks = effects.filter(s=>s.type==='poison').length;
+    const hasIce = effects.some(s=>s.type==='ice');
+    const hasCurse = effects.some(s=>s.type==='curse');
+
+    // Halo radius from world to pixels
+    const rWorld = (e.radius||12) + 6;
+    const rW = three.screenFromWorld?.(e.pos.x + rWorld, e.pos.y, 12);
+    const rPix = (rW && rW.visible) ? Math.hypot(rW.x-p.x, rW.y-p.y) : 18;
+
+    // Ice halo fill
+    if(hasIce){ octx.fillStyle='rgba(120,180,255,0.25)'; octx.beginPath(); octx.arc(p.x, p.y, rPix, 0, Math.PI*2); octx.fill(); }
+    // Fire stroke ring
+    if(fireStacks>0){ octx.strokeStyle='rgba(255,120,40,0.85)'; octx.lineWidth=2; octx.beginPath(); octx.arc(p.x, p.y, rPix+2, 0, Math.PI*2); octx.stroke(); }
+    // Poison soft halo
+    if(poisonStacks>0){ octx.fillStyle='rgba(60,255,100,0.18)'; octx.beginPath(); octx.arc(p.x, p.y, rPix+4, 0, Math.PI*2); octx.fill(); }
+    // Curse glow around health bar
+    if(hasCurse){ octx.strokeStyle='rgba(217,196,255,0.85)'; octx.lineWidth=2; octx.strokeRect(x-1, y-1, w+2, h+2); }
+
+    // Stack dots rows
+    Utils.drawStackDots(octx, p.x, y-6,  fireStacks,   'rgba(255,120,40,0.95)');
+    Utils.drawStackDots(octx, p.x, y-16, poisonStacks, 'rgba(60,255,100,0.95)');
+  }
+}
